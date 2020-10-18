@@ -1,0 +1,18 @@
+database: {
+  postgres: {
+    driver_name: "postgres",
+    username: "postgres",
+    password: "qwe12345",
+    db_name: "images",
+    ssl_mode: "disable",
+    host: "localhost",
+    max_conn: 10
+  }
+}
+
+web: {
+  server: {
+    address: "localhost",
+    port: "8008",
+  },
+}
