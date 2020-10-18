@@ -10,8 +10,8 @@ var (
 )
 
 type Config struct {
-	Db    ConfDB    `mapstructure:"database"`
-	Web   ConfWeb   `mapstructure:"web"`
+	Db  ConfDB  `mapstructure:"database"`
+	Web ConfWeb `mapstructure:"web"`
 }
 
 type ConfDB struct {
@@ -32,28 +32,26 @@ type ConfWeb struct {
 	Server ConfServer `mapstructure:"server"`
 }
 
-
 type ConfServer struct {
 	Address string `mapstructure:"address"`
 	Port    string `mapstructure:"port"`
 }
 
-
 func newConfig() *Config {
-	viper.SetConfigName("config")
+	viper.SetConfigName("configs")
 	viper.SetConfigType("yaml")
 	viper.AddConfigPath("./configs/yaml")
 
 	err := viper.ReadInConfig()
 	if err != nil {
-		log.Fatalf("Fatal error config file: %s \n", err)
+		log.Fatalf("Fatal error configs file: %s \n", err)
 	}
 
 	conf := new(Config)
 
 	er := viper.Unmarshal(conf)
 	if er != nil {
-		log.Fatalf("Fatal error config file: %s \n", err)
+		log.Fatalf("Fatal error configs file: %s \n", err)
 	}
 
 	return conf

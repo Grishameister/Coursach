@@ -1,8 +1,7 @@
 package app
 
 import (
-	"github.com/Grishameister/2020_2_Eternity/configs/config"
-	"github.com/Grishameister/2020_2_Eternity/internal/app/server"
+	"github.com/Grishameister/2020_2_Eternity/server"
 	"log"
 )
 
@@ -12,7 +11,6 @@ func main() {
 		return
 	}
 
-	defer Close()
 	srv := server.New(config.Conf)
 	if err := srv.Run(); err != nil {
 		log.Fatal(err)

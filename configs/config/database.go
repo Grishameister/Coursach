@@ -1,10 +1,8 @@
 package config
 
 import (
-	"github.com/jackc/pgx"
 	"github.com/jackc/pgx/pgxpool"
 )
-
 
 type DB struct {
 	dbPool *pgxpool.Conn
