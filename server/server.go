@@ -3,6 +3,7 @@ package server
 import (
 	"fmt"
 	"github.com/Grishameister/Coursach/configs/config"
+	"github.com/Grishameister/Coursach/internal/check"
 	"github.com/Grishameister/Coursach/internal/database"
 	"github.com/Grishameister/Coursach/internal/images/delivery"
 	"github.com/Grishameister/Coursach/internal/images/repository"
@@ -16,18 +17,20 @@ type Server struct {
 	router *gin.Engine
 }
 
-func New(config *config.Config, db database.DBInterface, queue *queue.Queue) *Server {
 
+
+func New(config *config.Config, db database.DBInterface, queue *queue.Queue) *Server {
 	rep := repository.NewRepo(db)
 	uc := usecase.NewUsecase(rep)
+	ch := make(chan interface{})
+	handler := delivery.NewHandler(queue, uc, ch)
 
-	handler := delivery.NewHandler(queue, uc)
+	go check.Check(ch)
 
 	r := gin.Default()
 
 	r.POST("/image", handler.SaveFrameMiddleWare(), handler.ToQueue)
 	r.GET("/image", handler.FromQueue)
-
 	return &Server{
 		config: &config.Web.Server,
 		router: r,

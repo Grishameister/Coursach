@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"errors"
+	"github.com/Grishameister/Coursach/internal/check"
 	"github.com/Grishameister/Coursach/internal/images"
 	"github.com/Grishameister/Coursach/internal/queue"
 	"github.com/gin-gonic/gin"
@@ -17,12 +18,14 @@ import (
 type Handler struct {
 	q *queue.Queue
 	uc images.IUsecase
+	notify chan interface{}
 }
 
-func NewHandler(q *queue.Queue, uc images.IUsecase) *Handler {
+func NewHandler(q *queue.Queue, uc images.IUsecase, ch chan interface{}) *Handler {
 	return &Handler{
 		q:  q,
 		uc: uc,
+		notify: ch,
 	}
 }
 
@@ -81,15 +84,22 @@ func (h *Handler) ToQueue(c *gin.Context) {
 		c.AbortWithStatus(http.StatusBadGateway)
 		return
 	}
+	if !check.PassToQueue {
+		log.Println("Wait for ")
+		c.Status(http.StatusOK)
+		return
+	}
 	if err := h.q.Push(buffer.([]byte)); err != nil {
 		log.Println(err, "Push doesnt work")
 		c.AbortWithStatus(http.StatusBadGateway)
 	}
+	log.Println("SIZE OF QUEUE IS ", h.q.Size())
 	c.Status(200)
 }
 
 func (h *Handler) FromQueue(c *gin.Context) {
 	data, err := h.q.Pop()
+	h.notify <- struct{}{}
 	if err != nil {
 		log.Println("CANT POP FROM QUEUE")
 		c.AbortWithStatus(http.StatusInternalServerError)
@@ -101,5 +111,6 @@ func (h *Handler) FromQueue(c *gin.Context) {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
+	log.Println("SIZE OF QUEUE IS ", h.q.Size())
 	c.Status(http.StatusOK)
 }

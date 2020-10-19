@@ -8,7 +8,7 @@ type Queue struct {
 
 func NewQueue() *Queue{
 	return &Queue{
-		queue: goconcurrentqueue.NewFixedFIFO(10),
+		queue: goconcurrentqueue.NewFixedFIFO(100),
 	}
 }
 

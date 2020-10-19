@@ -20,12 +20,13 @@ func NewDB(config *configDB.ConfDB) *DB {
 
 func (db *DB) Open() error {
 	conf, err := pgxpool.ParseConfig(fmt.Sprintf(
-		"user=%s password=%s host=%s dbname=%s sslmode=%s",
+		"user=%s password=%s host=%s dbname=%s sslmode=%s pool_max_conns=%s",
 		db.config.Postgres.Username,
 		db.config.Postgres.Password,
 		db.config.Postgres.Host,
 		db.config.Postgres.DbName,
 		db.config.Postgres.SslMode,
+		db.config.Postgres.MaxConn,
 	))
 	if err != nil {
 		return err
