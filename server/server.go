@@ -8,6 +8,7 @@ import (
 	"github.com/Grishameister/Coursach/internal/images/delivery"
 	"github.com/Grishameister/Coursach/internal/images/repository"
 	"github.com/Grishameister/Coursach/internal/images/usecase"
+	"github.com/Grishameister/Coursach/internal/poolDb"
 	"github.com/Grishameister/Coursach/internal/queue"
 	"github.com/gin-gonic/gin"
 )
@@ -23,7 +24,11 @@ func New(config *config.Config, db database.DBInterface, queue *queue.Queue) *Se
 	rep := repository.NewRepo(db)
 	uc := usecase.NewUsecase(rep)
 	ch := make(chan interface{})
-	handler := delivery.NewHandler(queue, uc, ch)
+	in := make (chan []byte, 100)
+	handler := delivery.NewHandler(queue, ch, in)
+
+	pool := poolDb.NewPool(in, uc)
+	pool.Run(8)
 
 	go check.Check(ch)
 

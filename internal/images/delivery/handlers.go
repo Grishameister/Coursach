@@ -2,11 +2,8 @@ package delivery
 
 import (
 	"bufio"
-	"bytes"
-	"compress/gzip"
 	"errors"
 	"github.com/Grishameister/Coursach/internal/check"
-	"github.com/Grishameister/Coursach/internal/images"
 	"github.com/Grishameister/Coursach/internal/queue"
 	"github.com/gin-gonic/gin"
 	"io/ioutil"
@@ -17,15 +14,15 @@ import (
 
 type Handler struct {
 	q *queue.Queue
-	uc images.IUsecase
 	notify chan interface{}
+	toPool chan []byte
 }
 
-func NewHandler(q *queue.Queue, uc images.IUsecase, ch chan interface{}) *Handler {
+func NewHandler(q *queue.Queue, ch chan interface{}, toPool chan[]byte) *Handler {
 	return &Handler{
 		q:  q,
-		uc: uc,
 		notify: ch,
+		toPool: toPool,
 	}
 }
 
@@ -54,26 +51,7 @@ func (h *Handler) SaveFrameMiddleWare() gin.HandlerFunc {
 		}
 		c.Set("buffer", buffer)
 		c.Next()
-
-		var zipbuf bytes.Buffer
-		gz := gzip.NewWriter(&zipbuf)
-
-		if _, err := gz.Write(buffer); err != nil {
-			log.Println(err)
-			c.AbortWithStatus(http.StatusInternalServerError)
-			return
-		}
-		if err := gz.Close(); err != nil {
-			log.Println(err)
-			c.AbortWithStatus(http.StatusInternalServerError)
-			return
-		}
-
-		if err := h.uc.PostFrame(c, zipbuf.Bytes()); err != nil {
-			log.Println(err)
-			c.AbortWithStatus(http.StatusInternalServerError)
-			return
-		}
+		h.toPool <- buffer
 	}
 }
 

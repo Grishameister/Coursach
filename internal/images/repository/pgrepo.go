@@ -1,7 +1,6 @@
 package repository
 
 import (
-	"context"
 	"github.com/Grishameister/Coursach/internal/database"
 )
 
@@ -15,6 +14,6 @@ func NewRepo(d database.DBInterface) *Repository {
 	}
 }
 
-func (r *Repository) PostFrame(c context.Context, bytes []byte) error {
-	return r.db.PostFrame(c, bytes)
+func (r *Repository) PostFrame(bytes []byte) error {
+	return r.db.PostFrame(bytes)
 }

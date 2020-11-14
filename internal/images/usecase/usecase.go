@@ -1,7 +1,6 @@
 package usecase
 
 import (
-	"context"
 	"github.com/Grishameister/Coursach/internal/images"
 )
 
@@ -15,6 +14,6 @@ func NewUsecase(repo images.IRepository) *FrameUsecase {
 	}
 }
 
-func (uc *FrameUsecase) PostFrame(c context.Context, bytes []byte) error{
-	return uc.repo.PostFrame(c, bytes)
+func (uc *FrameUsecase) PostFrame(bytes []byte) error{
+	return uc.repo.PostFrame(bytes)
 }
