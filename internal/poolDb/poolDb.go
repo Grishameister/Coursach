@@ -12,7 +12,7 @@ type Pool struct {
 	uc images.IUsecase
 }
 
-func NewPool(in chan[]byte, uc images.IUsecase) *Pool {
+func NewPool(in chan []byte, uc images.IUsecase) *Pool {
 	return &Pool{
 		in: in,
 		uc: uc,

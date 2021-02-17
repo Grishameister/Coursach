@@ -6,13 +6,13 @@ type Queue struct {
 	queue *goconcurrentqueue.FixedFIFO
 }
 
-func NewQueue() *Queue{
+func NewQueue() *Queue {
 	return &Queue{
 		queue: goconcurrentqueue.NewFixedFIFO(100),
 	}
 }
 
-func (q *Queue)Push(bytes []byte) error {
+func (q *Queue) Push(bytes []byte) error {
 	return q.queue.Enqueue(bytes)
 }
 

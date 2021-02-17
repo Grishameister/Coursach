@@ -18,14 +18,12 @@ type Server struct {
 	router *gin.Engine
 }
 
-
-
 func New(config *config.Config, db database.DBInterface, queue *queue.Queue) *Server {
 	rep := repository.NewRepo(db)
 	uc := usecase.NewUsecase(rep)
 	ch := make(chan interface{})
-	in := make (chan []byte, 100)
-	handler := delivery.NewHandler(queue, ch, in)
+	in := make(chan []byte, 100)
+	handler := delivery.NewHandler(queue, ch, in, uc)
 
 	pool := poolDb.NewPool(in, uc)
 	pool.Run(8)
@@ -37,8 +35,8 @@ func New(config *config.Config, db database.DBInterface, queue *queue.Queue) *Se
 	r.POST("/image", handler.SaveFrameMiddleWare(), handler.ToQueue)
 	r.GET("/image", handler.FromQueue)
 
-	r.GET("/image/date")
-	r.GET("/image/last")
+	r.GET("/image/date", handler.GetFrameByDate)
+	r.GET("/image/last", handler.GetLastFrame)
 
 	return &Server{
 		config: &config.Web.Server,

@@ -2,29 +2,35 @@ package delivery
 
 import (
 	"bufio"
+	"bytes"
+	"compress/gzip"
 	"errors"
 	"github.com/Grishameister/Coursach/internal/check"
 	"github.com/Grishameister/Coursach/internal/images"
 	"github.com/Grishameister/Coursach/internal/queue"
 	"github.com/gin-gonic/gin"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
+	"net/url"
 	"strconv"
+	"time"
 )
 
 type Handler struct {
-	q *queue.Queue
+	q      *queue.Queue
 	notify chan interface{}
 	toPool chan []byte
-	uc images.IUsecase
+	uc     images.IUsecase
 }
 
-func NewHandler(q *queue.Queue, ch chan interface{}, toPool chan[]byte) *Handler {
+func NewHandler(q *queue.Queue, ch chan interface{}, toPool chan []byte, uc images.IUsecase) *Handler {
 	return &Handler{
-		q:  q,
+		q:      q,
 		notify: ch,
 		toPool: toPool,
+		uc:     uc,
 	}
 }
 
@@ -78,25 +84,6 @@ func (h *Handler) ToQueue(c *gin.Context) {
 	log.Println("SIZE OF QUEUE IS ", h.q.Size())
 }
 
-func (h *Handler) FromQueue(c *gin.Context) {
-	data, err := h.q.Pop()
-	h.notify <- struct{}{}
-	if err != nil {
-		log.Println("CANT POP FROM QUEUE")
-		c.AbortWithStatus(http.StatusInternalServerError)
-		return
-	}
-	c.Header("Content-Type", "image/jpeg")
-	c.Header("Content-Length", strconv.Itoa(len(data)))
-	_, err = c.Writer.Write(data)
-	if err != nil {
-		c.AbortWithStatus(http.StatusInternalServerError)
-		return
-	}
-	c.Status(http.StatusOK)
-	log.Println("SIZE OF QUEUE IS ", h.q.Size())
-}
-
 func WriteRequestData(c *gin.Context, data *[]byte) {
 	if data == nil {
 		return
@@ -111,13 +98,57 @@ func WriteRequestData(c *gin.Context, data *[]byte) {
 	c.Status(http.StatusOK)
 }
 
-func (h *Handler) GetLastFrame(c *gin.Context) {
-	data := h.uc.GetLastFrame()
-
-	if data == nil {
+func (h *Handler) FromQueue(c *gin.Context) {
+	data, err := h.q.Pop()
+	h.notify <- struct{}{}
+	if err != nil {
+		log.Println("CANT POP FROM QUEUE")
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 	WriteRequestData(c, &data)
+	log.Println("SIZE OF QUEUE IS ", h.q.Size())
 }
 
+func WriteGzipData(c *gin.Context, data []byte) {
+	if data == nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	bufData := bytes.NewReader(data)
+	gz, err := gzip.NewReader(bufData)
+
+	if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	size, err := io.Copy(c.Writer, gz)
+	if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	defer gz.Close()
+	c.Header("Content-Type", "image/jpeg")
+	c.Header("Content-Length", strconv.FormatInt(size, 10))
+	c.Status(http.StatusOK)
+}
+
+func (h *Handler) GetLastFrame(c *gin.Context) {
+	WriteGzipData(c, h.uc.GetLastFrame())
+}
+
+func (h *Handler) GetFrameByDate(c *gin.Context) {
+	reqDate, err := url.QueryUnescape(c.Query("date"))
+	if err != nil {
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+	date, err := time.Parse("2006-01-02 15:04", reqDate)
+	if err != nil {
+		c.AbortWithStatus(http.StatusUnprocessableEntity)
+		return
+	}
+	WriteGzipData(c, h.uc.GetFrameByDate(date))
+}
