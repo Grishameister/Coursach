@@ -20,6 +20,6 @@ web: {
 proxy: {
   server: {
     address: "localhost",
-    port: "7007",
+    port: "8888",
   },
 }

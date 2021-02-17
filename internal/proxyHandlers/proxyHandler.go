@@ -1,6 +1,7 @@
 package proxyHandlers
 
 import (
+	"github.com/Grishameister/Coursach/configs/config"
 	"github.com/gin-gonic/gin"
 	"io"
 	"log"
@@ -18,7 +19,22 @@ func NewProxyHandler(client http.Client) *ProxyHandler {
 }
 
 func (h *ProxyHandler) HandleImages(c *gin.Context) {
-	resp, err := h.client.Do(c.Request)
+	log.Println(c.Request.RequestURI)
+	req, err := http.NewRequest(c.Request.Method, "http://" + config.Conf.Web.Server.Address + ":"+ config.Conf.Web.Server.Port + c.Request.RequestURI, c.Request.Body)
+	defer c.Request.Body.Close()
+	if err != nil {
+		return
+	}
+
+	for key, values := range c.Request.Header {
+		for _, v := range values {
+			req.Header.Add(key, v)
+		}
+	}
+
+	req.Host = "localhost:8008"
+
+	resp, err := h.client.Do(req)
 
 	if err != nil {
 		c.AbortWithStatus(http.StatusBadRequest)
@@ -29,7 +45,7 @@ func (h *ProxyHandler) HandleImages(c *gin.Context) {
 	defer resp.Body.Close()
 	for key, values := range resp.Header {
 		for _, v := range values {
-			c.Header(key, v)
+			c.Writer.Header().Add(key, v)
 		}
 	}
 
