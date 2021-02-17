@@ -19,7 +19,6 @@ func NewProxyHandler(client http.Client) *ProxyHandler {
 }
 
 func (h *ProxyHandler) HandleImages(c *gin.Context) {
-	log.Println(c.Request.RequestURI)
 	req, err := http.NewRequest(c.Request.Method, "http://" + config.Conf.Web.Server.Address + ":"+ config.Conf.Web.Server.Port + c.Request.RequestURI, c.Request.Body)
 	defer c.Request.Body.Close()
 	if err != nil {
