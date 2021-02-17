@@ -2,6 +2,7 @@ package repository
 
 import (
 	"github.com/Grishameister/Coursach/internal/database"
+	"time"
 )
 
 type Repository struct {
@@ -16,4 +17,12 @@ func NewRepo(d database.DBInterface) *Repository {
 
 func (r *Repository) PostFrame(bytes []byte) error {
 	return r.db.PostFrame(bytes)
+}
+
+func (r *Repository) GetFrameByDate(date time.Time) []byte {
+	return r.db.GetFrameByDate(date)
+}
+
+func (r *Repository) GetLastFrame() []byte {
+	return r.db.GetLastFrame()
 }

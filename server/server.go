@@ -36,6 +36,10 @@ func New(config *config.Config, db database.DBInterface, queue *queue.Queue) *Se
 
 	r.POST("/image", handler.SaveFrameMiddleWare(), handler.ToQueue)
 	r.GET("/image", handler.FromQueue)
+
+	r.GET("/image/date")
+	r.GET("/image/last")
+
 	return &Server{
 		config: &config.Web.Server,
 		router: r,

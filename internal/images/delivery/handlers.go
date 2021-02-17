@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"errors"
 	"github.com/Grishameister/Coursach/internal/check"
+	"github.com/Grishameister/Coursach/internal/images"
 	"github.com/Grishameister/Coursach/internal/queue"
 	"github.com/gin-gonic/gin"
 	"io/ioutil"
@@ -16,6 +17,7 @@ type Handler struct {
 	q *queue.Queue
 	notify chan interface{}
 	toPool chan []byte
+	uc images.IUsecase
 }
 
 func NewHandler(q *queue.Queue, ch chan interface{}, toPool chan[]byte) *Handler {
@@ -70,9 +72,10 @@ func (h *Handler) ToQueue(c *gin.Context) {
 	if err := h.q.Push(buffer.([]byte)); err != nil {
 		log.Println(err, "Push doesnt work")
 		c.AbortWithStatus(http.StatusBadGateway)
+		return
 	}
-	log.Println("SIZE OF QUEUE IS ", h.q.Size())
 	c.Status(200)
+	log.Println("SIZE OF QUEUE IS ", h.q.Size())
 }
 
 func (h *Handler) FromQueue(c *gin.Context) {
@@ -81,6 +84,7 @@ func (h *Handler) FromQueue(c *gin.Context) {
 	if err != nil {
 		log.Println("CANT POP FROM QUEUE")
 		c.AbortWithStatus(http.StatusInternalServerError)
+		return
 	}
 	c.Header("Content-Type", "image/jpeg")
 	c.Header("Content-Length", strconv.Itoa(len(data)))
@@ -89,6 +93,31 @@ func (h *Handler) FromQueue(c *gin.Context) {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
+	c.Status(http.StatusOK)
 	log.Println("SIZE OF QUEUE IS ", h.q.Size())
+}
+
+func WriteRequestData(c *gin.Context, data *[]byte) {
+	if data == nil {
+		return
+	}
+	c.Header("Content-Type", "image/jpeg")
+	c.Header("Content-Length", strconv.Itoa(len(*data)))
+	_, err := c.Writer.Write(*data)
+	if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
 	c.Status(http.StatusOK)
 }
+
+func (h *Handler) GetLastFrame(c *gin.Context) {
+	data := h.uc.GetLastFrame()
+
+	if data == nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	WriteRequestData(c, &data)
+}
+

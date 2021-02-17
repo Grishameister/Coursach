@@ -41,5 +41,5 @@ func (db *DB) Open() error {
 }
 
 func (db *DB) Close() error {
-	return nil
+	return db.Close()
 }
