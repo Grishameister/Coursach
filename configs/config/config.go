@@ -10,8 +10,9 @@ var (
 )
 
 type Config struct {
-	Db  ConfDB  `mapstructure:"database"`
-	Web ConfWeb `mapstructure:"web"`
+	Db    ConfDB  `mapstructure:"database"`
+	Web   ConfWeb `mapstructure:"web"`
+	Proxy ConfWeb `mapstructure:"proxy"`
 }
 
 type ConfDB struct {

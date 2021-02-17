@@ -16,3 +16,10 @@ web: {
     port: "8008",
   },
 }
+
+proxy: {
+  server: {
+    address: "localhost",
+    port: "7007",
+  },
+}
