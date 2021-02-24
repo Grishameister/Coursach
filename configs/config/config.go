@@ -13,6 +13,7 @@ type Config struct {
 	Db    ConfDB  `mapstructure:"database"`
 	Web   ConfWeb `mapstructure:"web"`
 	Proxy ConfWeb `mapstructure:"proxy"`
+	Stats ConfWeb `mapstructure:"stats"`
 }
 
 type ConfDB struct {

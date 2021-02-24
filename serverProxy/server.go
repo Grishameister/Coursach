@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"github.com/Grishameister/Coursach/configs/config"
 	"github.com/Grishameister/Coursach/internal/proxyHandlers"
+	"github.com/Grishameister/Coursach/internal/tcpConnPool"
 	"github.com/gin-gonic/gin"
+	"log"
 	"net/http"
 	"time"
 )
@@ -16,9 +18,16 @@ type Server struct {
 
 func New(config *config.Config) *Server {
 
-	handler := proxyHandlers.NewProxyHandler(http.Client{
+	pool, err := tcpConnPool.InitPool(10)
+
+	if err != nil {
+		log.Fatal("pool is not init")
+	}
+
+	handler := proxyHandlers.NewProxyHandler(
+		http.Client{
 		Timeout: time.Second * 10,
-	})
+	}, pool)
 	r := gin.Default()
 
 	r.POST("/image", handler.HandleImages)
