@@ -36,7 +36,7 @@ func New(config *config.Config) *Server {
 	r.GET("/image/date", handler.HandleImages)
 	r.GET("/image/last", handler.HandleImages)
 
-	r.GET("/stat")
+	r.GET("/stat", handler.HandleStats)
 
 	return &Server{
 		config: &config.Proxy.Server,

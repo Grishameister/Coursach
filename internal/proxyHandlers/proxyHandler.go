@@ -119,5 +119,11 @@ func (h *ProxyHandler) HandleStats(c *gin.Context) {
 		return
 	}
 
+	if err := h.p.Push(conn); err != nil {
+		log.Println(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
 	c.JSON(http.StatusOK, response)
 }
