@@ -3,10 +3,10 @@ package serverProxy
 import (
 	"fmt"
 	"github.com/Grishameister/Coursach/configs/config"
+	"github.com/Grishameister/Coursach/internal/domain"
 	"github.com/Grishameister/Coursach/internal/proxyHandlers"
-	"github.com/Grishameister/Coursach/internal/tcpConnPool"
+	"github.com/Grishameister/Coursach/internal/ws"
 	"github.com/gin-gonic/gin"
-	"log"
 	"net/http"
 	"time"
 )
@@ -17,26 +17,28 @@ type Server struct {
 }
 
 func New(config *config.Config) *Server {
-
-	pool, err := tcpConnPool.InitPool(10)
-
-	if err != nil {
-		log.Fatal("pool is not init")
-	}
-
+	statusChan := make(chan []domain.Status, 256)
 	handler := proxyHandlers.NewProxyHandler(
 		http.Client{
-		Timeout: time.Second * 10,
-	}, pool)
+			Timeout: time.Second * 10,
+		}, statusChan)
+
+	hub := ws.NewHub(statusChan)
 	r := gin.Default()
 
 	r.POST("/image", handler.HandleImages)
 	r.GET("/image", handler.HandleImages)
+	r.POST("/notification", handler.HandlerStatuses)
+	r.GET("/ws", func(c *gin.Context) {
+		hub.ServeWs(c.Writer, c.Request)
+	})
 
 	r.GET("/image/date", handler.HandleImages)
 	r.GET("/image/last", handler.HandleImages)
 
 	r.GET("/stat", handler.HandleStats)
+
+	go hub.WriteMessages()
 
 	return &Server{
 		config: &config.Proxy.Server,

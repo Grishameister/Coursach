@@ -7,12 +7,22 @@ type GetStat struct {
 }
 
 type Counters struct {
-	People int `json:"people"`
+	People     int `json:"people"`
 	Excavators int `json:"excavators"`
 	Bulldozers int `json:"bulldozers"`
 }
 
 type StatFromServer struct {
-	Date time.Time `json:"date"`
-	Counters Counters `json:"counters"`
+	Date     time.Time `json:"date"`
+	Counters Counters  `json:"counters"`
 }
+
+const (
+	StatusOK                  = Status("OK")
+	StatusNotEnoughBuldozers  = Status("NotEnoughBuldozers")
+	StatusNotEnoughExcavators = Status("NotEnoughExcavators ")
+	StatusNotEnoughPeople     = Status("NotEnoughPeople")
+)
+
+type Status string
+type Statuses map[Status]struct{}

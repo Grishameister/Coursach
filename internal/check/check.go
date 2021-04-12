@@ -12,7 +12,6 @@ func Check(in chan interface{}) {
 		ticker := time.NewTicker(10 * time.Second)
 		select {
 		case <-in:
-			log.Println("AAAAAAAAAAAA")
 			PassToQueue = true
 		case <-ticker.C:
 			log.Println("tick")

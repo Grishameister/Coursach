@@ -9,13 +9,13 @@ import (
 )
 
 type TcpPool struct {
-	q *goconcurrentqueue.FixedFIFO
+	q      *goconcurrentqueue.FixedFIFO
 	isInit bool
 }
 
 func NewPool(cap int) *TcpPool {
 	return &TcpPool{
-		q: goconcurrentqueue.NewFixedFIFO(100),
+		q:      goconcurrentqueue.NewFixedFIFO(100),
 		isInit: false,
 	}
 }
@@ -26,7 +26,7 @@ func InitPool(size int) (*TcpPool, error) {
 	}
 	p := NewPool(size)
 	for i := 0; i < size; i++ {
-		conn, err := net.Dial("tcp", config.Conf.Stats.Server.Address + ":" + config.Conf.Stats.Server.Port)
+		conn, err := net.Dial("tcp", config.Conf.Stats.Server.Address+":"+config.Conf.Stats.Server.Port)
 		if err != nil {
 			log.Println(err.Error())
 			return p, err

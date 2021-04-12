@@ -1,32 +1,44 @@
 package proxyHandlers
 
 import (
+	"encoding/json"
+	"io"
+	"log"
+	"net"
+	"net/http"
+	"net/url"
+	"sync"
+	"time"
+
+	"github.com/gin-gonic/gin"
+	"github.com/vmihailenco/msgpack/v5"
+
 	"github.com/Grishameister/Coursach/configs/config"
 	"github.com/Grishameister/Coursach/internal/domain"
 	"github.com/Grishameister/Coursach/internal/tcpConnPool"
-	"github.com/gin-gonic/gin"
-	"github.com/vmihailenco/msgpack/v5"
-	"io"
-	"log"
-	"net/http"
-	"net/url"
-	"time"
 )
 
 type ProxyHandler struct {
-	client http.Client
-	p *tcpConnPool.TcpPool
+	client     http.Client
+	p          *tcpConnPool.TcpPool
+	ch         chan []domain.Status
+	LastStatus domain.Statuses
+	mu         *sync.RWMutex
 }
 
-func NewProxyHandler(client http.Client, p *tcpConnPool.TcpPool) *ProxyHandler {
+func NewProxyHandler(client http.Client, ch chan []domain.Status) *ProxyHandler {
 	return &ProxyHandler{
 		client: client,
-		p: p,
+		ch:     ch,
+		LastStatus: domain.Statuses{
+			domain.StatusOK: struct{}{},
+		},
+		mu: &sync.RWMutex{},
 	}
 }
 
 func (h *ProxyHandler) HandleImages(c *gin.Context) {
-	req, err := http.NewRequest(c.Request.Method, "http://" + config.Conf.Web.Server.Address + ":"+ config.Conf.Web.Server.Port + c.Request.RequestURI, c.Request.Body)
+	req, err := http.NewRequest(c.Request.Method, "http://"+config.Conf.Web.Server.Address+":"+config.Conf.Web.Server.Port+c.Request.RequestURI, c.Request.Body)
 	defer c.Request.Body.Close()
 	if err != nil {
 		return
@@ -88,12 +100,13 @@ func (h *ProxyHandler) HandleStats(c *gin.Context) {
 		return
 	}
 
-	conn, err := h.p.Pop()
+	conn, err := net.Dial("tcp", config.Conf.Stats.Server.Address+":"+config.Conf.Stats.Server.Port)
 	if err != nil {
 		log.Println(err)
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
+	defer conn.Close()
 
 	_, err = conn.Write(b)
 	if err != nil {
@@ -103,7 +116,6 @@ func (h *ProxyHandler) HandleStats(c *gin.Context) {
 	}
 
 	resp := make([]byte, 1024)
-
 	n, err := conn.Read(resp)
 	if err != nil {
 		log.Println(err)
@@ -112,18 +124,47 @@ func (h *ProxyHandler) HandleStats(c *gin.Context) {
 	}
 
 	response := domain.StatFromServer{}
-
 	if err := msgpack.Unmarshal(resp[0:n], &response); err != nil {
 		log.Println(err)
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 
-	if err := h.p.Push(conn); err != nil {
-		log.Println(err)
-		c.AbortWithStatus(http.StatusInternalServerError)
+	c.JSON(http.StatusOK, response)
+}
+
+func (h *ProxyHandler) HandlerStatuses(c *gin.Context) {
+	var statuses []domain.Status
+	if err := json.NewDecoder(c.Request.Body).Decode(&statuses); err != nil {
+		c.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
 
-	c.JSON(http.StatusOK, response)
+	h.mu.Lock()
+	if different := h.checkStatuses(statuses); different {
+		h.LastStatus = NewStatus(statuses)
+		h.ch <- statuses
+	}
+	h.mu.Unlock()
+
+	c.Status(http.StatusOK)
+}
+
+func (h *ProxyHandler) checkStatuses(statuses []domain.Status) bool {
+	different := false
+	for _, st := range statuses {
+		if _, ok := h.LastStatus[st]; !ok {
+			different = true
+			break
+		}
+	}
+	return different
+}
+
+func NewStatus(statuses []domain.Status) domain.Statuses {
+	result := domain.Statuses{}
+	for _, st := range statuses {
+		result[st] = struct{}{}
+	}
+	return result
 }
