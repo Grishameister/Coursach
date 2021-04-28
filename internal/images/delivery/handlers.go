@@ -145,7 +145,7 @@ func (h *Handler) GetFrameByDate(c *gin.Context) {
 		c.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
-	date, err := time.Parse("2006-01-02 15:04", reqDate)
+	date, err := time.Parse("2006-01-02 15:04:01", reqDate)
 	if err != nil {
 		c.AbortWithStatus(http.StatusUnprocessableEntity)
 		return

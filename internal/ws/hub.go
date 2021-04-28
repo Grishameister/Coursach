@@ -22,12 +22,12 @@ var upgrader = websocket.Upgrader{
 }
 
 type Hub struct {
-	statusMessages chan []domain.Status
+	statusMessages chan domain.StatusChannel
 	Connections    map[uuid.UUID]*websocket.Conn
 	mu             *sync.Mutex
 }
 
-func NewHub(statusMessages chan []domain.Status) *Hub {
+func NewHub(statusMessages chan domain.StatusChannel) *Hub {
 	return &Hub{
 		statusMessages: statusMessages,
 		Connections:    make(map[uuid.UUID]*websocket.Conn),

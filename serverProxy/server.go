@@ -2,13 +2,15 @@ package serverProxy
 
 import (
 	"fmt"
+	"net/http"
+	"time"
+
+	"github.com/gin-gonic/gin"
+
 	"github.com/Grishameister/Coursach/configs/config"
 	"github.com/Grishameister/Coursach/internal/domain"
 	"github.com/Grishameister/Coursach/internal/proxyHandlers"
 	"github.com/Grishameister/Coursach/internal/ws"
-	"github.com/gin-gonic/gin"
-	"net/http"
-	"time"
 )
 
 type Server struct {
@@ -17,7 +19,7 @@ type Server struct {
 }
 
 func New(config *config.Config) *Server {
-	statusChan := make(chan []domain.Status, 256)
+	statusChan := make(chan domain.StatusChannel, 256)
 	handler := proxyHandlers.NewProxyHandler(
 		http.Client{
 			Timeout: time.Second * 10,

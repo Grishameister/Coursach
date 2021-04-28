@@ -1,14 +1,13 @@
 package proxyHandlers
 
 import (
-	"encoding/json"
 	"io"
 	"log"
 	"net"
 	"net/http"
 	"net/url"
+	"strings"
 	"sync"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/vmihailenco/msgpack/v5"
@@ -21,12 +20,12 @@ import (
 type ProxyHandler struct {
 	client     http.Client
 	p          *tcpConnPool.TcpPool
-	ch         chan []domain.Status
+	ch         chan domain.StatusChannel
 	LastStatus domain.Statuses
 	mu         *sync.RWMutex
 }
 
-func NewProxyHandler(client http.Client, ch chan []domain.Status) *ProxyHandler {
+func NewProxyHandler(client http.Client, ch chan domain.StatusChannel) *ProxyHandler {
 	return &ProxyHandler{
 		client: client,
 		ch:     ch,
@@ -83,17 +82,13 @@ func (h *ProxyHandler) HandleStats(c *gin.Context) {
 		c.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
-	date, err := time.Parse("2006-01-02 15:04", reqDate)
-	if err != nil {
-		c.AbortWithStatus(http.StatusUnprocessableEntity)
-		return
+
+	s := domain.DataRequest{
+		Date:      reqDate,
+		TypeRoute: domain.ReadStatData,
 	}
 
-	s := domain.GetStat{
-		Date: date,
-	}
-
-	b, err := msgpack.Marshal(&s)
+	b, err := msgpack.Marshal(s)
 	if err != nil {
 		log.Println(err)
 		c.AbortWithStatus(http.StatusInternalServerError)
@@ -123,7 +118,7 @@ func (h *ProxyHandler) HandleStats(c *gin.Context) {
 		return
 	}
 
-	response := domain.StatFromServer{}
+	response := domain.DataResponse{}
 	if err := msgpack.Unmarshal(resp[0:n], &response); err != nil {
 		log.Println(err)
 		c.AbortWithStatus(http.StatusInternalServerError)
@@ -134,26 +129,33 @@ func (h *ProxyHandler) HandleStats(c *gin.Context) {
 }
 
 func (h *ProxyHandler) HandlerStatuses(c *gin.Context) {
-	var statuses []domain.Status
-	if err := json.NewDecoder(c.Request.Body).Decode(&statuses); err != nil {
+	var req domain.StatusRequest
+	if err := msgpack.NewDecoder(c.Request.Body).Decode(&req); err != nil {
+		log.Println(err)
 		c.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
+	defer c.Request.Body.Close()
+
+	statuses := strings.Split(req.Statuses, ",")
 
 	h.mu.Lock()
 	if different := h.checkStatuses(statuses); different {
-		h.LastStatus = NewStatus(statuses)
-		h.ch <- statuses
+		h.LastStatus = newStatus(statuses)
+		h.ch <- domain.StatusChannel{
+			Date:     req.Date,
+			Statuses: statuses,
+		}
 	}
 	h.mu.Unlock()
 
 	c.Status(http.StatusOK)
 }
 
-func (h *ProxyHandler) checkStatuses(statuses []domain.Status) bool {
+func (h *ProxyHandler) checkStatuses(statuses []string) bool {
 	different := false
 	for _, st := range statuses {
-		if _, ok := h.LastStatus[st]; !ok {
+		if _, ok := h.LastStatus[domain.Status(st)]; !ok {
 			different = true
 			break
 		}
@@ -161,10 +163,10 @@ func (h *ProxyHandler) checkStatuses(statuses []domain.Status) bool {
 	return different
 }
 
-func NewStatus(statuses []domain.Status) domain.Statuses {
+func newStatus(statuses []string) domain.Statuses {
 	result := domain.Statuses{}
 	for _, st := range statuses {
-		result[st] = struct{}{}
+		result[domain.Status(st)] = struct{}{}
 	}
 	return result
 }

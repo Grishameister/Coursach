@@ -20,13 +20,13 @@ web: {
 proxy: {
   server: {
     address: "localhost",
-    port: "8888",
+    port: "8881",
   },
 }
 
 stats: {
   server: {
     address: "localhost",
-    port: "8887",
+    port: "8889",
   },
 }
